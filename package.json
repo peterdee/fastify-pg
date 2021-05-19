@@ -1,16 +1,16 @@
 {
   "name": "fastify-pg",
   "version": "1.0.0",
+  "private":"true",
   "description": "",
-  "main": "index.js",
   "type": "module",
   "scripts": {
-    "database:drop": "node ./database/drop-database.js",
+    "database:drop": "node -r dotenv/config ./database/drop-database.js",
     "dev": "nodemon ./loader.js",
     "lint": "eslint"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "dotenv": "^9.0.2",
     "fastify": "^3.15.1",

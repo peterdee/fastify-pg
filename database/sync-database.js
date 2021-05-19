@@ -1,4 +1,5 @@
 import connection from './index.js';
+import log from '../utilities/log.js';
 
 import ItemsTable from './tables/Items.table.js';
 import PasswordsTable from './tables/Passwords.table.js';
@@ -29,5 +30,5 @@ export default async function syncDatabase() {
     }
   }
 
-  return null;
+  return log('-- database: synchronization is done');
 }

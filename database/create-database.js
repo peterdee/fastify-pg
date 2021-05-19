@@ -2,12 +2,13 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 import { DATABASE_NAME } from '../configuration/index.js';
+import log from '../utilities/log.js';
 
 const execPromise = promisify(exec);
 
 /**
  * Create database with PSQL
- * @returns {null | Error}
+ * @returns {void | Error}
  */
 export default async function createDatabase() {
   try {
@@ -16,11 +17,11 @@ export default async function createDatabase() {
       throw stderr;
     }
 
-    return null;
+    return log('-- database: created database');
   } catch (error) {
     const { stderr } = error;
     if (stderr && stderr.includes(`database "${DATABASE_NAME}" already exists`)) {
-      return null;
+      return log('-- database: database already exists');
     }
 
     throw error;
