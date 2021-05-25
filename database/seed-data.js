@@ -5,6 +5,7 @@ import {
   ADMIN_PASSWORD,
 } from '../configuration/index.js';
 import connection from './index.js';
+import generateSecret from '../utilities/generate-secret.js';
 import log from '../utilities/log.js';
 
 /**
@@ -38,16 +39,30 @@ export default async function seedData() {
     throw new Error('User record was not created during seeding');
   }
 
-  await connection.query(
-    `INSERT INTO "Passwords" (hash, "userId") VALUES (
-      $1,
-      $2
-    );`,
-    [
-      passwordHash,
-      userRecord.id,
-    ],
-  );
+  const userSecret = await generateSecret(userRecord.id);
+
+  await Promise.all([
+    connection.query(
+      `INSERT INTO "Passwords" (hash, "userId") VALUES (
+        $1,
+        $2
+      );`,
+      [
+        passwordHash,
+        userRecord.id,
+      ],
+    ),
+    connection.query(
+      `INSERT INTO "UserSecrets" (secret, "userId") VALUES (
+        $1,
+        $2
+      );`,
+      [
+        userSecret,
+        userRecord.id,
+      ],
+    ),
+  ]);
 
   return log('-- database: seeding is done');
 }

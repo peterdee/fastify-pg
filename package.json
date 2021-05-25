@@ -7,15 +7,18 @@
   "scripts": {
     "database:drop": "node -r dotenv/config ./database/drop-database.js",
     "dev": "nodemon ./loader.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "migration:create": "node -r dotenv/config ./database/create-migration.js",
+    "migration:delete": "node -r dotenv/config ./database/delete-migration.js"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "cuid": "^2.1.8",
     "dotenv": "^9.0.2",
     "fastify": "^3.15.1",
     "pg": "^8.6.0",
-    "scryptwrap": "^1.0.2"
+    "scryptwrap": "^1.0.3"
   },
   "devDependencies": {
     "eslint": "^7.26.0",
