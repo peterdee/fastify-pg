@@ -1,5 +1,5 @@
-import app from './app.js';
 import applyMigrations from './database/apply-migrations.js';
+import buildApplication from './app.js';
 import createDatabase from './database/create-database.js';
 import log from './utilities/log.js';
 import { PORT } from './configuration/index.js';
@@ -15,7 +15,8 @@ import synchronizeDatabase from './database/sync-database.js';
   await applyMigrations();
   await seedData();
 
-  await app.listen(
+  const app = await buildApplication();
+  app.listen(
     PORT,
     () => log(`-- FASTIFY-PG is running on port ${PORT}`),
   );
