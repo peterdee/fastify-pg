@@ -19,6 +19,7 @@ export const PREFIXES = {
 
 export const RESPONSE_MESSAGES = {
   internalServerError: 'INTERNAL_SERVER_ERROR',
+  notFound: 'NOT_FOUND',
   ok: 'OK',
 };
 
@@ -26,6 +27,7 @@ export const RESPONSE_STATUSES = {
   accessDenied: 400,
   forbidden: 403,
   internalServerError: 500,
+  notFound: 404,
   ok: 200,
   unauthorized: 401,
 };

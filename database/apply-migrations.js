@@ -4,10 +4,35 @@ import connection from './index.js';
 import log from '../utilities/log.js';
 
 /**
+ * Delete migrations
+ * @returns {Promise<void>}
+ */
+async function deleteMigrations() {
+  return connection.query('DELETE FROM "Migrations";');
+}
+
+/**
  * Apply existing migrations
  * @returns {Promise<void | Error>}
  */
 export default async function applyMigrations() {
+  const migrationsPath = `${process.cwd()}/migrations`;
+  try {
+    await fs.access(migrationsPath);
+  } catch (error) {
+    const { message = '' } = error;
+    if (message && message.includes('ENOENT')) {
+      await deleteMigrations();
+      return log('-- migrations: migration files not found');
+    }
+  }
+
+  const filesList = await fs.readdir(migrationsPath);
+  if (!(Array.isArray(filesList) && filesList.length > 0)) {
+    await deleteMigrations();
+    return log('-- migrations: migration files not found');
+  }
+
   const { rows: migrationRecords } = await connection.query(
     'SELECT * FROM "Migrations" ORDER BY id;',
   );
@@ -19,22 +44,6 @@ export default async function applyMigrations() {
   const allApplied = migrationRecords.every(({ applied }) => applied);
   if (allApplied) {
     return log('-- migrations: all migrations are applied');
-  }
-
-  const migrationsPath = `${process.cwd()}/migrations`;
-
-  try {
-    await fs.access(migrationsPath);
-  } catch (error) {
-    const { message = '' } = error;
-    if (message && message.includes('ENOENT')) {
-      throw new Error('Migration files not found!');
-    }
-  }
-
-  const filesList = await fs.readdir(migrationsPath);
-  if (!(Array.isArray(filesList) && filesList.length > 0)) {
-    throw new Error('Migration files not found!');
   }
 
   const reversedRecords = migrationRecords.reverse();
