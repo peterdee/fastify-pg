@@ -23,31 +23,35 @@ import log from '../utilities/log.js';
     }
   }
 
-  await Promise.all([
-    connection.query(
-      `
-        INSERT INTO "Migrations" (commentary, "migrationId") VALUES (
-          $1,
-          $2
-        );
-      `,
-      [
-        commentary || '',
-        migrationId,
-      ],
-    ),
-    fs.writeFile(
-      `${process.cwd()}/migrations/${migrationId}.js`,
-      `// Migration ID: ${migrationId}
+  const { rows: [result] } = await connection.query(
+    `
+      INSERT INTO "Migrations" (commentary, "migrationId") VALUES (
+        $1,
+        $2
+      ) RETURNING *;
+    `,
+    [
+      commentary || '',
+      migrationId,
+    ],
+  );
+  const { id = null } = result;
+  if (!id) {
+    throw new Error('Could not create a migration record!');
+  }
+
+  const fileName = `${id}-${migrationId}`;
+  await fs.writeFile(
+    `${process.cwd()}/migrations/${fileName}.js`,
+    `// File name: ${fileName}
 ${commentary ? `// Commentary: ${commentary}` : ''}
 export default \`
-  /* Migration SQL code here */
+/* Migration SQL code should be placed here */
 \`;
 `,
-    ),
-  ]);
+  );
 
-  log(`-- migrations: migration ${migrationId} created`);
+  log(`-- migrations: migration ${fileName} created`);
 
   await connection.end();
   return process.exit(0);

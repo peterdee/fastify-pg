@@ -3,6 +3,25 @@ import { promises as fs } from 'fs';
 import connection from './index.js';
 import log from '../utilities/log.js';
 
+async function applyChanges(migrationsPath = '', migrationFiles = []) {
+  // eslint-disable-next-line
+  for await (let record of migrationFiles) {
+    try {
+      const fileName = `${record.fileName}.js`;
+
+      const { default: file } = await import(`../migrations/${fileName}`);
+      await connection.query(file);
+      await connection.query(
+        'UPDATE "Migrations" SET applied = TRUE WHERE id = $1',
+        [record.id],
+      );
+      log(`-- migrations: applied migration ${record.fileName}`);
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+}
+
 /**
  * Delete migrations
  * @returns {Promise<void>}
@@ -37,9 +56,9 @@ export default async function applyMigrations() {
     'SELECT * FROM "Migrations" ORDER BY id;',
   );
 
-  if (!(Array.isArray(migrationRecords) && migrationRecords.length > 0)) {
-    return log('-- migrations: migration records not found');
-  }
+  // migration records don't exist, apply migration files
+  // if (!(Array.isArray(migrationRecords) && migrationRecords.length > 0)) {
+  // }
 
   const allApplied = migrationRecords.every(({ applied }) => applied);
   if (allApplied) {

@@ -7,9 +7,14 @@ import log from '../utilities/log.js';
  * Delete migration file and its record if it was not applied
  */
 (async function deleteMigration() {
-  const migrationId = process.argv[2];
+  const fileName = process.argv[2];
+  if (!fileName) {
+    throw new Error('Please provide the file name!');
+  }
+
+  const [migrationId = ''] = fileName.split('-').slice(-1);
   if (!migrationId) {
-    throw new Error('Please provide Migration ID!');
+    throw new Error('Invalid file name!');
   }
 
   const { rows: [result = null] = [] } = await connection.query(
@@ -21,10 +26,10 @@ import log from '../utilities/log.js';
   }
 
   if (!result) {
-    throw new Error('Migration ID not found!');
+    throw new Error('Migration record not found!');
   }
 
-  const migrationPath = `${process.cwd()}/migrations/${migrationId}.js`;
+  const migrationPath = `${process.cwd()}/migrations/${fileName}.js`;
 
   try {
     await fs.unlink(migrationPath);
