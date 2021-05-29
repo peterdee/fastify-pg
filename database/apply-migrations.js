@@ -3,25 +3,6 @@ import { promises as fs } from 'fs';
 import connection from './index.js';
 import log from '../utilities/log.js';
 
-async function applyChanges(migrationsPath = '', migrationFiles = []) {
-  // eslint-disable-next-line
-  for await (let record of migrationFiles) {
-    try {
-      const fileName = `${record.fileName}.js`;
-
-      const { default: file } = await import(`../migrations/${fileName}`);
-      await connection.query(file);
-      await connection.query(
-        'UPDATE "Migrations" SET applied = TRUE WHERE id = $1',
-        [record.id],
-      );
-      log(`-- migrations: applied migration ${record.fileName}`);
-    } catch (error) {
-      throw new Error(error);
-    }
-  }
-}
-
 /**
  * Delete migrations
  * @returns {Promise<void>}
@@ -35,6 +16,7 @@ async function deleteMigrations() {
  * @returns {Promise<void | Error>}
  */
 export default async function applyMigrations() {
+  // check migrations directory
   const migrationsPath = `${process.cwd()}/migrations`;
   try {
     await fs.access(migrationsPath);
@@ -42,23 +24,57 @@ export default async function applyMigrations() {
     const { message = '' } = error;
     if (message && message.includes('ENOENT')) {
       await deleteMigrations();
-      return log('-- migrations: migration files not found');
+      log('-- migrations: migration files not found');
+      return process.exit(0);
     }
   }
 
+  // check files in the migrations directory
   const filesList = await fs.readdir(migrationsPath);
   if (!(Array.isArray(filesList) && filesList.length > 0)) {
     await deleteMigrations();
-    return log('-- migrations: migration files not found');
+    log('-- migrations: migration files not found');
+    return process.exit(0);
   }
 
+  // get database records
   const { rows: migrationRecords } = await connection.query(
     'SELECT * FROM "Migrations" ORDER BY id;',
   );
 
   // migration records don't exist, apply migration files
-  // if (!(Array.isArray(migrationRecords) && migrationRecords.length > 0)) {
-  // }
+  if (!(Array.isArray(migrationRecords) && migrationRecords.length > 0)) {
+    // eslint-disable-next-line
+    for await (let file of filesList) {
+      try {
+        const { default: migration } = await import(`../migrations/${file}`);
+        const [fileName] = file.split('.');
+        const [migrationId] = fileName.split('-').slice(-1);
+        if (!migrationId) {
+          throw new Error(`Invalid file name [${file}]!`);
+        }
+        await connection.query(migration);
+        await connection.query(
+          `
+            INSERT INTO "Migrations" (applied, "migrationId") VALUES (
+              $1,
+              $2
+            );
+          `,
+          [
+            true,
+            migrationId,
+          ],
+        );
+        log(`-- migrations: applied migration ${fileName}`);
+      } catch (error) {
+        throw new Error(error);
+      }
+
+      log('-- migrations: done');
+      return process.exit(0);
+    }
+  }
 
   const allApplied = migrationRecords.every(({ applied }) => applied);
   if (allApplied) {
